@@ -1,7 +1,7 @@
 #:schema https://rlbot.org/schemas/agent.json
 [settings]
 # The name that will be displayed in game
-name = "Python Example"
+name = "KitBot"
 # Path to loadout config from runner
 loadout_file = "loadout.toml"
 # (OPTIONAL) - what you want the working directory set to
@@ -27,18 +27,17 @@ logo_file = ""
 [details]
 # Short description of the bot
 description = """
-This is a multi-line description
-of the official python example bot
+KitBot is just a regular bot that does regular things.
 """
 # Fun fact about the bot
-fun_fact = "Made possible by RLBot v5"
+fun_fact = "My first attempt at making a bot."
 # Link to your repository
-source_link = "https://github.com/RLBot/python-example"
+source_link = "https://github.com/Hcollins660/KitBot"
 # Name of the bot's creator/developer
-developer = "The RLBot community"
+developer = "vanster6"
 # Programming language
 language = "Python"
 # ALL POSSIBLE TAGS: 1v1, teamplay, goalie, hoops, dropshot, snow-day, rumble, spike-rush, heatseeker, memebot
 # NOTE: Only add the goalie tag if your bot only plays as a goalie; this directly contrasts with the teamplay tag!
 # NOTE: Only add a tag for a special game mode if you bot properly supports it
-tags = []
+tags = ["1v1"]
