@@ -1,5 +1,5 @@
 [[config]]
-project_name = "PythonExample"
+project_name = "KitBot"
 bot_configs = ["src/bot.toml"]
 
 [config.builder_config]
