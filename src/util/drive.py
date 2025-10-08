@@ -25,3 +25,10 @@ def steer_toward_target(car: PlayerInfo, target: Vec3) -> float:
     )
     angle = math.atan2(relative.y, relative.x)
     return limit_to_safe_range(angle * 5)
+
+def angle_to_target(car: PlayerInfo, target: Vec3) -> float:
+    relative = relative_location(
+        Vec3(car.physics.location), Orientation(car.physics.rotation), target
+    )
+    angle = math.atan2(relative.y, relative.x)
+    return math.degrees(angle)
