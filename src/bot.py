@@ -71,7 +71,7 @@ class MyBot(Bot):
             is_kickoff = False
 
         # By default we will chase the ball, but target_location can be changed later
-        target_location = ball_location
+        target_location = Vec3(ball_location.x, ball_location.y, 93.15)
         
         
 
@@ -98,7 +98,7 @@ class MyBot(Bot):
         
         
         #if the car has no boost, go get some
-        if my_car.boost == 0 and is_kickoff == False:
+        if my_car.boost <= 50 and is_kickoff == False:
             nearest_pad = sorted(self.boost_pad_tracker.boost_pads, key=lambda pad: pad.location.dist(car_location))[0]
             if nearest_pad.is_active and nearest_pad.location.dist(car_location) < 400:
                 target_location = nearest_pad.location
@@ -140,11 +140,11 @@ class MyBot(Bot):
                 yawtoball=relative_location(car_location, car_orientation, ball_location)
                 print(math.radians(yawtoball.y))
                 return self.flip_toward_ball(math.radians(yawtoball.y), packet)
-        
+            
         
 
-
         
+       
         # Draw some things to help understand what the bot is thinking
         self.renderer.draw_line_3d(
             CarAnchor(self.index), target_location, self.renderer.white
@@ -179,6 +179,10 @@ class MyBot(Bot):
         controls = ControllerState()
         controls.steer = steer_toward_target(my_car, target_location)
         controls.throttle = 1.0
+
+        if bool(my_car.air_state.InAir):
+            controls.pitch = -my_car.physics.rotation.pitch / 327
+            controls.roll = -my_car.physics.rotation.roll / 327
 
         #if the bot is facing the target, boost. if not, handbrake turn
         if abs(angle_to_target(my_car, target_location)) < 90:
