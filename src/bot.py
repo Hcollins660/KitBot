@@ -52,6 +52,11 @@ class MyBot(Bot):
             rate = 3500
             brakingdist = (speed**2)/(2 * rate)
             return brakingdist
+        
+        def target_with_velocity(target: Vec3, target_velocity: Vec3) -> Vec3:
+            out = target + target_velocity
+                
+            return out
 
         # Gather some information about our car and the ball
         my_car = packet.players[self.index]
@@ -118,9 +123,10 @@ class MyBot(Bot):
         #team specific defense
         
         if blueteam:
-            #logic only for the blue team
+            #defensive pos for blue team
             defensivepos = Vec3(ball_location.x.__mul__(-0.25), -5100, 0)
 
+            #if the ball is behind us, go to defensive position
             if car_location.y > ball_location.y:
                 target_location = defensivepos
                 if abs(relative_location(car_velocity, car_orientation, target_location).y) < 90 and not relative_location(car_velocity, car_orientation, target_location).x <= 0 and car_speed > 450:
@@ -130,12 +136,13 @@ class MyBot(Bot):
                     
                 if ball_velocity.y <= car_velocity.y and heading_to_target:
                     return self.begin_front_flip(packet)
-            brakingdist = find_brake_dist(car_speed, target_location)
-            if ball_location.z >= 115:
-                if car_to_ball > brakingdist:
-                    should_brake = False
-                else:
-                    should_brake = True
+            
+            brakingdist = find_brake_dist(car_speed, Vec3.flat(target_location))
+            should_brake = False
+
+            if ball_location.z > 135 and car_to_ball < brakingdist + 180:
+                should_brake = True
+
             elif car_to_ball < 310 and ball_location.z < 115:
                 #flip toward ball if within 275uu
                 yawtoball = relative_location(car_location, car_orientation, ball_location)
@@ -144,21 +151,28 @@ class MyBot(Bot):
         if redteam:
             #logic only for the red team
             defensivepos = Vec3(ball_location.x.__mul__(-0.25), 5100, 0)
+
+            #if the ball is behind us, go to defensive position
             if car_location.y < ball_location.y:
                 target_location = defensivepos
+
+                #check if we're heading to target
                 if abs(relative_location(car_velocity, car_orientation, target_location).y) < 90 and not relative_location(car_velocity, car_orientation, target_location).x <= 0 and car_speed > 450:
                     heading_to_target = True
                 else:
                     heading_to_target = False
-                    
+                
+                #if the ball is moving toward the goal faster than us, front flip
                 if ball_velocity.y >= car_velocity.y and heading_to_target:
                     return self.begin_front_flip(packet)
-            brakingdist = find_brake_dist(car_speed, target_location)
-            if ball_location.z >= 115:
-                if car_to_ball > brakingdist:
-                    should_brake = False
-                else:
-                    should_brake = True
+            #if the ball is above the car, find the braking distance sets should_brake to true if within braking distance + 225uu
+            brakingdist = find_brake_dist(car_speed, Vec3.flat(target_location))
+            should_brake = False
+
+            if ball_location.z > 135 and car_to_ball < brakingdist + 180:
+                should_brake = True
+
+            #Else, if within 310uu and the ball is low, flip toward the ball
             elif car_to_ball < 310 and ball_location.z < 115:
                 #flip toward ball if within 275uu
                 yawtoball = relative_location(car_location, car_orientation, ball_location)
@@ -205,6 +219,7 @@ class MyBot(Bot):
         
         controls = ControllerState()
         controls.steer = steer_toward_target(my_car, target_location)
+        #if car needs to brake, reverse. else, go forward
         if should_brake == True:
             controls.throttle = -1.0
         else:
@@ -217,7 +232,8 @@ class MyBot(Bot):
         #if the bot is facing the target, boost. if not, handbrake turn
         if abs(angle_to_target(my_car, target_location)) < 90:
             if car_speed < 2300.0:
-                controls.boost = True
+                if should_brake == False:
+                    controls.boost = True
             controls.handbrake = False
         else:
             controls.boost = False
@@ -226,11 +242,6 @@ class MyBot(Bot):
         return controls
 
     def begin_front_flip(self, packet: GamePacket, ) -> ControllerState:
-        # Send some quickchat just for fun
-        # There won't be any content of the message for other bots,
-        # but "I got it!" will be display for a human to see!
-        # self.send_match_comm(b"", "I got it!")
-
         # Do a front flip. We will be committed to this for a few seconds and the bot will ignore other
         # logic during that time because we are setting the active_sequence.
         self.active_sequence = Sequence(
