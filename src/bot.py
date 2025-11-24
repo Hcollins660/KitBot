@@ -44,9 +44,11 @@ class MyBot(Bot):
         if self.active_sequence is not None and not self.active_sequence.done:
             return self.active_sequence.tick(packet)
         
-        def can_flip():
+        def can_flip() -> bool: 
             if my_car.dodge_elapsed >= 2.0 and my_car.air_state == my_car.air_state.OnGround:
                 return True
+            else:
+                return False
         
         def find_brake_dist(speed: float, target: Vec3) -> float:
             rate = 3500
@@ -54,9 +56,9 @@ class MyBot(Bot):
             return brakingdist
         
         def target_with_velocity(target: Vec3, target_velocity: Vec3) -> Vec3:
-            out = target + target_velocity
+            output = target + target_velocity
                 
-            return out
+            return output
 
         # Gather some information about our car and the ball
         my_car = packet.players[self.index]
@@ -112,77 +114,33 @@ class MyBot(Bot):
                     BallAnchor(0), target_location, self.renderer.cyan
                 )
         
-        
-        
         if my_car.boost <= 50 and is_kickoff == False:
             nearest_pad = sorted(self.boost_pad_tracker.boost_pads, key=lambda pad: pad.location.dist(car_location))[0]
             if nearest_pad.is_active and nearest_pad.location.dist(car_location) < 1200 and nearest_pad.location:
                 if Vec3(Vec3(ball_location.x, ball_location.y, 93.15) - car_location).dot(nearest_pad.location - target_location) > 0.4:
                     target_location = nearest_pad.location
         
-        #team specific defense
-        
-        if blueteam:
-            #defensive pos for blue team
-            defensivepos = Vec3(ball_location.x.__mul__(-0.25), -5100, 0)
 
-            #if the ball is behind us, go to defensive position
-            if car_location.y > ball_location.y:
-                target_location = defensivepos
-                if abs(relative_location(car_velocity, car_orientation, target_location).y) < 90 and not relative_location(car_velocity, car_orientation, target_location).x <= 0 and car_speed > 450:
-                    heading_to_target = True
-                else:
-                    heading_to_target = False
-                    
-                if ball_velocity.y <= car_velocity.y and heading_to_target:
-                    return self.begin_front_flip(packet)
-            
-            brakingdist = find_brake_dist(car_speed, Vec3.flat(target_location))
-            should_brake = False
+        defensive_pos = Vec3(ball_location.x * -0.25, -5100 if blueteam else 5100, 0)
+        ball_behind = (car_location.y > ball_location.y) if blueteam else (car_location.y < ball_location.y)
 
-            if ball_location.z > 135 and car_to_ball < brakingdist + 180:
-                should_brake = True
+        if ball_behind:
+            target_location = defensive_pos
 
-            elif car_to_ball < 310 and ball_location.z < 115:
-                #flip toward ball if within 275uu
-                yawtoball = relative_location(car_location, car_orientation, ball_location)
-                
-                return self.flip_toward_ball(math.radians(yawtoball.y), packet)
-        if redteam:
-            #logic only for the red team
-            defensivepos = Vec3(ball_location.x.__mul__(-0.25), 5100, 0)
+            rel_vel = relative_location(car_velocity, car_orientation, target_location)
+            heading_to_target = abs(rel_vel.y) < 90 and rel_vel.x > 0 and car_speed > 450
 
-            #if the ball is behind us, go to defensive position
-            if car_location.y < ball_location.y:
-                target_location = defensivepos
+            if ball_velocity.length() >= car_velocity.length() and heading_to_target and can_flip:
+                return self.begin_front_flip(packet)
 
-                #check if we're heading to target
-                if abs(relative_location(car_velocity, car_orientation, target_location).y) < 90 and not relative_location(car_velocity, car_orientation, target_location).x <= 0 and car_speed > 450:
-                    heading_to_target = True
-                else:
-                    heading_to_target = False
-                
-                #if the ball is moving toward the goal faster than us, front flip
-                if ball_velocity.y >= car_velocity.y and heading_to_target:
-                    return self.begin_front_flip(packet)
-            #if the ball is above the car, find the braking distance sets should_brake to true if within braking distance + 225uu
-            brakingdist = find_brake_dist(car_speed, Vec3.flat(target_location))
-            should_brake = False
+        braking_dist = find_brake_dist(car_speed, Vec3.flat(target_location))
 
-            if ball_location.z > 135 and car_to_ball < brakingdist + 180:
-                should_brake = True
+        if ball_location.z > 135 and car_to_ball < braking_dist + 140 and target_location != defensive_pos:
+            should_brake = True
+        elif car_to_ball < 310 and ball_location.z < 115 and target_location != defensive_pos:
+            yaw_to_ball = relative_location(car_location, car_orientation, ball_location).y
+            return self.flip_toward_ball(math.radians(yaw_to_ball), packet)
 
-            #Else, if within 310uu and the ball is low, flip toward the ball
-            elif car_to_ball < 310 and ball_location.z < 115:
-                #flip toward ball if within 275uu
-                yawtoball = relative_location(car_location, car_orientation, ball_location)
-                
-                return self.flip_toward_ball(math.radians(yawtoball.y), packet)
-        
-            
-        
-
-        
        
         # Draw some things to help understand what the bot is thinking
         self.renderer.draw_line_3d(
